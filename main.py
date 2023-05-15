@@ -1,41 +1,44 @@
+import requests
 from requests import get
 from pprint import PrettyPrinter
 
-Base_URL = "https://data.nba.net/"
-ALL_JSON = "/prod/v1/today.json"
+URL = "https://api-nba-v1.p.rapidapi.com/games"
+headers = {
+    "X-RapidAPI-Key": "",
+    "X-RapidAPI-Host": "api-nba-v1.p.rapidapi.com"
+}
+
+
 printer = PrettyPrinter()
+# printer.pprint(response.json())
 
 
-def get_links():
-    data = get(Base_URL + ALL_JSON).json()
-    links = data["links"]
-    return links
+def get_games(params):
+    response = requests.get(URL, headers=headers, params=params)
+    date = response.json()['parameters']
+    date = date['date']
+    print(f"NBA games on {date[-5:-3]} - {date[-2:]} - {date[:4]}:")
+
+    for game in response.json()['response']:
+        home = game['teams']['home']['code']
+        away = game['teams']['visitors']['code']
+        score_home = game['scores']['home']['points']
+        score_away = game['scores']['visitors']['points']
+        quarter = game['periods']['current']
+        clock = game['status']['clock']
+        home_nick = game['teams']['home']['nickname']
+        away_nick = game['teams']['visitors']['nickname']
+
+        print(home + " vs " + away)
+        if quarter == 4 and clock is not None:
+           print(str(quarter) + ": " + str(score_home) + " - " + str(score_away))
+        elif score_home > score_away:
+            print("Final: " + str(score_home) + " - " + str(score_away) + " --------> " + home_nick + " Win!")
+        else:
+            print("Final: " + str(score_home) + " - " + str(score_away) + " --------> " + away_nick + " Win!")
 
 
-def get_scoreboard():
-    scoreboard = get_links()['currentScoreboard']
-    games = get(Base_URL + scoreboard).json()['games']
-    date = get_links()['currentDate']
+user_date = input("Welcome! Please specify a date(year-month-day): ")
+params = {"date": user_date}
 
-    print(f"NBA games on {date[4:6]} - {date[6:]} - {date[:4]}:")
-
-    for game in games:
-        home = game["hTeam"]
-        away = game["vTeam"]
-        clock = game["clock"]
-        period = game['period']
-
-        print(f"{home['triCode']} vs {away['triCode']}")
-        print(f"{home['score']} - {away['score']}")
-        print(f"Clock: {clock} || Quarter: {period['current']}")
-        print("___________________________________________")
-
-def get_stats():
-    stats = get_links()['leagueConfStandings']
-    standing = get(Base_URL + stats).json()
-
-    printer.pprint(standing)
-
-
-get_scoreboard()
-#  get_stats()
+get_games(params)
